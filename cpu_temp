@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# cpu_temp.sh — Show CPU temperature for dwmblocks
+# Dependencies: lm_sensors (for `sensors` command)
+
+# Try Core 0 first
+core_temp=$(sensors | awk '/Core 0:/ {
+    gsub("\\+","",$3); gsub("°C","",$3)
+    print int($3)
+    exit
+}')
+
+# Fallback: use Package id 0 if Core 0 not found
+if [ -z "$core_temp" ]; then
+    core_temp=$(sensors | awk '/Package id 0:/ {
+        gsub("\\+","",$4); gsub("°C","",$4)
+        print int($4)
+        exit
+    }')
+fi
+
+# Final fallback
+[ -z "$core_temp" ] && echo " N/A" && exit
+
+# Pick icon based on temperature
+if   [ "$core_temp" -ge 80 ]; then
+    icon=""   # hot
+elif [ "$core_temp" -ge 60 ]; then
+    icon=""   # warm
+else
+    icon=""   # cool
+fi
+
+echo "$icon ${core_temp}°C"
+

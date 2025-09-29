@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export DISPLAY="${DISPLAY:-:0}"
+
+# Output directory (default: ~/Screenshots)
+OUTDIR="${1:-${HOME}/Screenshots}"
+mkdir -p "$OUTDIR"
+
+# Filename
+current="$(date +%Y%m%d_%H%M%S).png"
+filepath="${OUTDIR}/${current}"
+
+# Pick screenshot tool (import or scrot)
+tool_path="$(command -v import 2>/dev/null || command -v scrot 2>/dev/null)" || {
+    if command -v notify-send &>/dev/null; then
+        notify-send "Screenshot Tool Missing" "Neither 'import' nor 'scrot' is installed!"
+    fi
+    echo "Error: No screenshot tool found." >&2
+    exit 1
+}
+TOOL="$(basename "$tool_path")"
+
+# Flags (handle selection)
+flags=()
+if [[ "$TOOL" == "scrot" && "${2:-}" == "-s" ]]; then
+    flags=(--select)
+elif [[ "$TOOL" == "import" ]]; then
+    if [[ "${2:-}" == "-s" ]]; then
+        flags=()   # area selection (default interactive import)
+    else
+        flags=(-window root) # full screen
+    fi
+fi
+
+# Take screenshot
+"$TOOL" "${flags[@]}" "$filepath" || {
+    if command -v notify-send &>/dev/null; then
+        notify-send "Screenshot Failed" "Could not save screenshot to $filepath."
+    fi
+    echo "Screenshot failed: $filepath" >&2
+    exit 1
+}
+
+# Copy to clipboard: prefer xclip, fallback to wl-copy (Wayland)
+if command -v xclip &>/dev/null; then
+    xclip -selection clipboard -t image/png -i "$filepath"
+elif command -v wl-copy &>/dev/null; then
+    wl-copy --type image/png < "$filepath"
+fi
+
+# Notify user (if notify-send present)
+if command -v notify-send &>/dev/null; then
+    notify-send -i "$filepath" "Screenshot Taken" "Saved as $current in $OUTDIR"
+fi
+
+# NOTE: feh opening has been removed as requested.
+

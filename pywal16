@@ -1,0 +1,10 @@
+#!/usr/bin/env bash 
+
+# Refresh wal colors
+ln -sf ~/.cache/wal/colors.Xresources ~/.Xresources
+cat ~/.Xresources ~/.cache/wal/xrdb_extra | xrdb -merge
+xdotool key super+ctrl+backslash
+
+# Refresh Picom blur cache (this alone is safe)
+pkill -USR1 picom
+
