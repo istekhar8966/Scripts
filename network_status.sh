@@ -1,30 +1,34 @@
 #!/usr/bin/env bash
-# Show active internet device only
+
+# Use Nerd Font icons
+ICON_WIFI="󰤨"
+ICON_ETHERNET="󰍹"
+ICON_DISCONNECTED="󰤮"
 
 get_network_status() {
-    # Get device which is actually used for internet
-    DEFAULT_DEV=$(ip route | grep '^default' | head -1 | awk '{print $5}')
+  ACTIVE_DEV=$(ip route | grep '^default' | awk '{print $5}' | head -n1)
 
-    if [ -z "$DEFAULT_DEV" ]; then
-        echo "󰤮 Disconnected"
-        return
-    fi
+  if [ -z "$ACTIVE_DEV" ]; then
+    echo "$ICON_DISCONNECTED Disconnected"
+    return
+  fi
 
-    # Get device type
-    TYPE=$(networkctl status "$DEFAULT_DEV" 2>/dev/null | awk '/Type/ {print $2}')
+  INFO=$(nmcli -t -f DEVICE,TYPE,CONNECTION dev | grep "^$ACTIVE_DEV" | head -n1)
 
-    case "$TYPE" in
-        ether)
-            echo "󰈀 Ethernet"
-            ;;
-        wlan)
-            echo "󰤨 Wi-Fi"
-            ;;
-        *)
-            echo "󰈀 Connected"
-            ;;
-    esac
+  TYPE=$(echo "$INFO" | cut -d: -f2)
+  NAME=$(echo "$INFO" | cut -d: -f3)
+
+  case "$TYPE" in
+  wifi)
+    echo "$ICON_WIFI $NAME"
+    ;;
+  ethernet)
+    echo "$ICON_ETHERNET Ethernet"
+    ;;
+  *)
+    echo "$ICON_ETHERNET $NAME"
+    ;;
+  esac
 }
 
 get_network_status
-
